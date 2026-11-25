@@ -1,12 +1,6 @@
-# Ignorar executáveis e binários
-*.exe
-*.dll
-*.bin
-
-# Ignorar arquivos temporários
-*.log
-*.tmp
-
-# Ignorar cache do Python
-__pycache__/
-*.pyc
+﻿__pycache__/
+*.py[cod]
+.env
+.venv/
+venv/
+.vscode/

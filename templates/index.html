@@ -1,0 +1,519 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>MariaIA — Assistente Virtual</title>
+  <style>
+    :root {
+      --bg-main: #0d1117;
+      --bg-card: #161b22;
+      --bg-input: #21262d;
+      --border: #30363d;
+      --text-main: #f0f6fc;
+      --text-muted: #8b949e;
+      --accent: #3b82f6;
+      --accent-hover: #2563eb;
+
+      --theme-main: #fbbf24;
+      --theme-deep: #f59e0b;
+      --theme-glow: rgba(251, 191, 36, 0.24);
+      --theme-glow-strong: rgba(251, 191, 36, 0.65);
+
+      --creator-bg: rgba(236, 72, 153, 0.16);
+      --creator-border: rgba(244, 114, 182, 0.55);
+      --creator-text: #f9a8d4;
+      --maria-bubble: #1f2630;
+      --user-bubble: #2563eb;
+    }
+
+    body.creator-theme {
+      --theme-main: #f472b6;
+      --theme-deep: #ec4899;
+      --theme-glow: rgba(236, 72, 153, 0.28);
+      --theme-glow-strong: rgba(244, 114, 182, 0.72);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
+    }
+
+    body {
+      background: radial-gradient(circle at top, #161f2e 0%, var(--bg-main) 65%);
+      color: var(--text-main);
+      height: 100dvh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: 16px;
+    }
+
+    .app-container {
+      width: 100%;
+      max-width: 780px;
+      height: 92dvh;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.55);
+    }
+
+    .header {
+      padding: 14px 20px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      background: rgba(13, 17, 23, 0.72);
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .avatar-orb {
+      width: 60px;
+      height: 60px;
+      border-radius: 50%;
+      position: relative;
+      display: grid;
+      place-items: center;
+      flex-shrink: 0;
+      background: radial-gradient(circle, var(--theme-glow) 0%, rgba(13, 17, 23, 0.25) 72%);
+      box-shadow: 0 0 16px var(--theme-glow);
+      transition: box-shadow 0.3s ease, transform 0.3s ease, background 0.3s ease;
+    }
+
+    .avatar-orb.speaking {
+      transform: scale(1.1);
+      box-shadow: 0 0 28px var(--theme-glow-strong), 0 0 48px var(--theme-glow);
+    }
+
+    .avatar-orb canvas {
+      width: 60px;
+      height: 60px;
+      display: block;
+    }
+
+    .title-group h1 {
+      font-size: 1.05rem;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--theme-main);
+      box-shadow: 0 0 10px var(--theme-glow-strong);
+      display: inline-block;
+      transition: transform 0.25s ease, background 0.3s ease;
+    }
+
+    .avatar-orb.speaking ~ .title-group .status-dot {
+      transform: scale(1.3);
+    }
+
+    .title-group p {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      margin-top: 2px;
+    }
+
+    .header-actions {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .role-badge {
+      font-size: 0.76rem;
+      padding: 5px 10px;
+      border-radius: 999px;
+      border: 1px solid var(--border);
+      background: var(--bg-input);
+      color: var(--text-muted);
+      white-space: nowrap;
+      transition: all 0.25s ease;
+    }
+
+    .role-badge.creator {
+      background: var(--creator-bg);
+      border-color: var(--creator-border);
+      color: var(--creator-text);
+      font-weight: 600;
+    }
+
+    .btn-reset {
+      background: transparent;
+      border: 1px solid var(--border);
+      color: var(--text-muted);
+      padding: 6px 12px;
+      border-radius: 8px;
+      font-size: 0.8rem;
+      cursor: pointer;
+      transition: 0.2s;
+    }
+
+    .btn-reset:hover {
+      color: var(--text-main);
+      border-color: #6e7681;
+    }
+
+    .chat-box {
+      flex: 1;
+      overflow-y: auto;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      scroll-behavior: smooth;
+    }
+
+    .message {
+      max-width: 80%;
+      padding: 12px 16px;
+      border-radius: 16px;
+      line-height: 1.5;
+      font-size: 0.95rem;
+      white-space: pre-wrap;
+      word-wrap: break-word;
+      animation: fadeIn 0.18s ease-out;
+    }
+
+    .message.maria {
+      align-self: flex-start;
+      background: var(--maria-bubble);
+      border: 1px solid var(--border);
+      border-bottom-left-radius: 4px;
+    }
+
+    .message.user {
+      align-self: flex-end;
+      background: var(--user-bubble);
+      color: #fff;
+      border-bottom-right-radius: 4px;
+    }
+
+    .typing {
+      font-style: italic;
+      color: var(--theme-main);
+      font-size: 0.84rem;
+      padding: 0 20px 8px;
+      display: none;
+    }
+
+    .input-area {
+      padding: 14px 16px;
+      border-top: 1px solid var(--border);
+      background: rgba(13, 17, 23, 0.72);
+      display: flex;
+      gap: 10px;
+    }
+
+    .input-area input {
+      flex: 1;
+      background: var(--bg-input);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 12px 14px;
+      color: var(--text-main);
+      font-size: 0.95rem;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+
+    .input-area input:focus {
+      border-color: var(--theme-deep);
+    }
+
+    .input-area button {
+      background: var(--accent);
+      color: #fff;
+      border: none;
+      border-radius: 12px;
+      padding: 0 20px;
+      font-weight: 600;
+      font-size: 0.95rem;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+
+    .input-area button:hover {
+      background: var(--accent-hover);
+    }
+
+    .input-area button:disabled {
+      opacity: 0.55;
+      cursor: not-allowed;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(4px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    @media (max-width: 560px) {
+      body { padding: 0; }
+      .app-container { height: 100dvh; border-radius: 0; border: none; }
+      .message { max-width: 88%; }
+      .role-badge { display: none; }
+    }
+  </style>
+</head>
+<body>
+  <div class="app-container">
+    <header class="header">
+      <div class="brand">
+        <div id="mariaOrb" class="avatar-orb" aria-hidden="true">
+          <canvas id="goldParticlesCanvas" width="120" height="120"></canvas>
+        </div>
+        <div class="title-group">
+          <h1>MariaIA <span class="status-dot"></span></h1>
+          <p id="subStatus">Assistente Virtual em Python</p>
+        </div>
+      </div>
+      <div class="header-actions">
+        <span id="roleBadge" class="role-badge">Visitante</span>
+        <button id="resetBtn" class="btn-reset" title="Reiniciar conversa">Nova conversa</button>
+      </div>
+    </header>
+
+    <main id="chatBox" class="chat-box">
+      <div class="message maria">Olá! Eu sou a MariaIA. Qual é o seu nome?</div>
+    </main>
+
+    <div id="typingIndicator" class="typing">MariaIA está processando e falando...</div>
+
+    <form id="chatForm" class="input-area">
+      <input
+        type="text"
+        id="userInput"
+        placeholder="Digite sua mensagem..."
+        autocomplete="off"
+        required
+      />
+      <button type="submit" id="sendBtn">Enviar</button>
+    </form>
+  </div>
+
+  <script>
+    const chatBox = document.getElementById("chatBox");
+    const chatForm = document.getElementById("chatForm");
+    const userInput = document.getElementById("userInput");
+    const sendBtn = document.getElementById("sendBtn");
+    const typingIndicator = document.getElementById("typingIndicator");
+    const roleBadge = document.getElementById("roleBadge");
+    const resetBtn = document.getElementById("resetBtn");
+    const subStatus = document.getElementById("subStatus");
+
+    const mariaOrb = document.getElementById("mariaOrb");
+    const canvas = document.getElementById("goldParticlesCanvas");
+    const ctx = canvas.getContext("2d");
+
+    const PALETAS = {
+      dourado: {
+        brilhoClara: "254, 243, 199",
+        media: "251, 191, 36",
+        profunda: "245, 158, 11",
+      },
+      rosa: {
+        brilhoClara: "252, 231, 243",
+        media: "244, 114, 182",
+        profunda: "236, 72, 153",
+      },
+    };
+
+    let ehCriadorAtual = false;
+    let falando = false;
+    let pulsoPosResposta = 0;
+
+    const particulas = Array.from({ length: 52 }, (_, i) => {
+      const anelExterno = i < 36;
+      const totalNoAnel = anelExterno ? 36 : 16;
+      const idxNoAnel = anelExterno ? i : i - 36;
+      const anguloBase = (idxNoAnel / totalNoAnel) * Math.PI * 2;
+
+      return {
+        angulo: anguloBase,
+        raioBase: anelExterno ? 36 + (i % 3) * 4.5 : 21 + (i % 2) * 4.5,
+        tamanho: anelExterno ? 1.8 + (i % 4) * 0.65 : 1.4 + (i % 3) * 0.5,
+        velocidade: (anelExterno ? 0.015 : -0.022) + (i % 5) * 0.0028,
+        oscilacao: i * 0.65,
+        camadaCor: i % 3 === 0 ? "brilhoClara" : i % 2 === 0 ? "media" : "profunda",
+      };
+    });
+
+    function setFalando(ativo) {
+      falando = ativo;
+      mariaOrb.classList.toggle("speaking", ativo);
+      subStatus.textContent = ativo
+        ? "Processando • Modo Sábio ativo"
+        : "Assistente Virtual em Python";
+    }
+
+    function animarParticulas() {
+      const w = canvas.width;
+      const h = canvas.height;
+      const cx = w / 2;
+      const cy = h / 2;
+
+      ctx.clearRect(0, 0, w, h);
+
+      if (pulsoPosResposta > 0) {
+        pulsoPosResposta = Math.max(0, pulsoPosResposta - 0.02);
+      }
+
+      const energia = falando ? 1 : pulsoPosResposta;
+      const multiplicadorVel = 1 + energia * 2.9;
+      const aberturaRaio = energia * 6.5;
+      const paleta = ehCriadorAtual ? PALETAS.rosa : PALETAS.dourado;
+
+      // Anel guia sutil
+      ctx.beginPath();
+      ctx.arc(cx, cy, 38 + energia * 3.5, 0, Math.PI * 2);
+      ctx.strokeStyle = `rgba(${paleta.media}, ${(0.18 + energia * 0.35).toFixed(2)})`;
+      ctx.lineWidth = 1.6;
+      ctx.stroke();
+
+      // Núcleo pulsante estilo Grande Sábio / Rafael
+      const raioNucleo = 20 + energia * 8.5;
+      const gradNucleo = ctx.createRadialGradient(cx, cy, 2, cx, cy, raioNucleo);
+      gradNucleo.addColorStop(0, `rgba(${paleta.brilhoClara}, ${(0.5 + energia * 0.42).toFixed(2)})`);
+      gradNucleo.addColorStop(0.55, `rgba(${paleta.media}, ${(0.24 + energia * 0.3).toFixed(2)})`);
+      gradNucleo.addColorStop(1, `rgba(${paleta.profunda}, 0)`);
+      ctx.fillStyle = gradNucleo;
+      ctx.beginPath();
+      ctx.arc(cx, cy, raioNucleo, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Partículas em movimento circular
+      for (const p of particulas) {
+        p.angulo += p.velocidade * multiplicadorVel;
+        p.oscilacao += 0.075 * multiplicadorVel;
+
+        const onda = Math.sin(p.oscilacao) * (2.8 + energia * 4.2);
+        const raioAtual = p.raioBase + onda + aberturaRaio;
+
+        const x = cx + Math.cos(p.angulo) * raioAtual;
+        const y = cy + Math.sin(p.angulo) * raioAtual;
+
+        const alpha = Math.min(1, 0.62 + 0.3 * Math.sin(p.oscilacao) + energia * 0.25);
+        const raioPonto = p.tamanho * (1 + energia * 0.38);
+        const rgb = paleta[p.camadaCor];
+
+        ctx.beginPath();
+        ctx.arc(x, y, raioPonto, 0, Math.PI * 2);
+        ctx.fillStyle = `rgba(${rgb}, ${alpha.toFixed(2)})`;
+        ctx.fill();
+      }
+
+      requestAnimationFrame(animarParticulas);
+    }
+
+    animarParticulas();
+
+    function adicionarMensagem(texto, remetente) {
+      const div = document.createElement("div");
+      div.className = `message ${remetente}`;
+      div.textContent = texto;
+      chatBox.appendChild(div);
+      chatBox.scrollTop = chatBox.scrollHeight;
+      return div;
+    }
+
+    function digitarMensagemMaria(textoCompleto) {
+      return new Promise((resolve) => {
+        const div = adicionarMensagem("", "maria");
+        let indice = 0;
+        const velocidadeMs = textoCompleto.length > 180 ? 12 : 18;
+
+        function passo() {
+          if (indice < textoCompleto.length) {
+            div.textContent += textoCompleto.charAt(indice);
+            indice += 1;
+            chatBox.scrollTop = chatBox.scrollHeight;
+            setTimeout(passo, velocidadeMs);
+          } else {
+            resolve();
+          }
+        }
+
+        passo();
+      });
+    }
+
+    function atualizarBadge(nome, ehCriador) {
+      ehCriadorAtual = Boolean(ehCriador);
+      document.body.classList.toggle("creator-theme", ehCriadorAtual);
+
+      if (ehCriadorAtual) {
+        roleBadge.textContent = "Sr. Rodrigo (Criador)";
+        roleBadge.classList.add("creator");
+      } else if (nome) {
+        roleBadge.textContent = nome;
+        roleBadge.classList.remove("creator");
+      } else {
+        roleBadge.textContent = "Visitante";
+        roleBadge.classList.remove("creator");
+      }
+    }
+
+    chatForm.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const texto = userInput.value.trim();
+      if (!texto) return;
+
+      adicionarMensagem(texto, "user");
+      userInput.value = "";
+      userInput.disabled = true;
+      sendBtn.disabled = true;
+      typingIndicator.style.display = "block";
+      setFalando(true);
+
+      try {
+        const res = await fetch("/chat", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ mensagem: texto }),
+        });
+        const data = await res.json();
+        atualizarBadge(data.nome_usuario, data.eh_criador);
+        typingIndicator.style.display = "none";
+        await digitarMensagemMaria(data.resposta || "Sem resposta.");
+        pulsoPosResposta = 1;
+      } catch (err) {
+        typingIndicator.style.display = "none";
+        adicionarMensagem("Erro ao conectar com o servidor local da MariaIA.", "maria");
+      } finally {
+        setFalando(false);
+        userInput.disabled = false;
+        sendBtn.disabled = false;
+        userInput.focus();
+      }
+    });
+
+    resetBtn.addEventListener("click", async () => {
+      const res = await fetch("/reset", { method: "POST" });
+      const data = await res.json();
+      chatBox.innerHTML = "";
+      atualizarBadge(null, false);
+      adicionarMensagem(data.mensagem, "maria");
+      pulsoPosResposta = 0.6;
+      userInput.focus();
+    });
+  </script>
+</body>
+</html>
